@@ -1,13 +1,13 @@
 import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes
+    ContextTypes,
 )
 
-TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = os.environ["BOT_TOKEN"]  # force fail if missing
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -25,8 +25,11 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "code":
         await query.message.reply_text("Here is your content")
 
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(buttons))
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(buttons))
+    app.run_polling()
 
-app.run_polling()
+if __name__ == "__main__":
+    main()
