@@ -17,7 +17,7 @@ from telegram.ext import (
 TOKEN = os.environ["BOT_TOKEN"]
 CHANNEL_ID = "@underage_editz"        # your channel
 ADMIN_ID = 6803356420                 # your Telegram user ID
-DELIVERY_BOT_USERNAME = "Coder_using_gpt_bot"  # without @
+DELIVERY_BOT_USERNAME = "Coder_using_ai_bot"  # without @
 
 # Temporary session storage
 post_sessions = {}
