@@ -74,17 +74,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if s.get("awaiting") == "file2":
         s["file2"] = update.message.text
+        s["awaiting"] = "link1"
         if s["layout"] == 3:
-            s["awaiting"] = "link1"
             await update.message.reply_text("🔗 Send WATCH HERE link.")
         else:
-            s["awaiting"] = "link1"
             await update.message.reply_text("🔗 Send LINK 1.")
         return
 
     if s.get("awaiting") == "link1":
         s["link1"] = update.message.text
-        if s["layout"] == 2 or s["layout"] == 3:
+        if s["layout"] in (2, 3):
             await show_preview(update)
         else:
             s["awaiting"] = "link2"
@@ -127,30 +126,41 @@ async def show_preview(update: Update):
     uid = update.effective_user.id
     s = sessions[uid]
 
-    buttons = []
-
     if s["layout"] == 2:
         buttons = [[
-            InlineKeyboardButton("GET CODE", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
+            InlineKeyboardButton(
+                "GET CODE",
+                url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
+            ),
             InlineKeyboardButton("WATCH HERE", url=s["link1"])
         ]]
 
     elif s["layout"] == 3:
         buttons = [
             [
-                InlineKeyboardButton("FILE 1", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
-                InlineKeyboardButton("FILE 2", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}")
+                InlineKeyboardButton(
+                    "FILE 1",
+                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
+                ),
+                InlineKeyboardButton(
+                    "FILE 2",
+                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
+                )
             ],
-            [
-                InlineKeyboardButton("WATCH HERE", url=s["link1"])
-            ]
+            [InlineKeyboardButton("WATCH HERE", url=s["link1"])]
         ]
 
-    elif s["layout"] == 4:
+    else:  # layout 4
         buttons = [
             [
-                InlineKeyboardButton("FILE 1", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
-                InlineKeyboardButton("FILE 2", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}")
+                InlineKeyboardButton(
+                    "FILE 1",
+                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
+                ),
+                InlineKeyboardButton(
+                    "FILE 2",
+                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
+                )
             ],
             [
                 InlineKeyboardButton("LINK 1", url=s["link1"]),
@@ -158,10 +168,13 @@ async def show_preview(update: Update):
             ]
         ]
 
+    markup = InlineKeyboardMarkup(buttons)
+    s["final_buttons"] = markup  # 🔑 CRITICAL FIX
+
     await update.message.reply_photo(
         photo=s["photo"],
         caption="🔍 **PREVIEW**\n\n" + s["caption"],
-        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_markup=markup,
         parse_mode="Markdown"
     )
 
@@ -184,13 +197,17 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = query.from_user.id
     await query.answer()
 
-    s = sessions[uid]
+    s = sessions.get(uid)
+    if not s or "final_buttons" not in s:
+        await query.message.reply_text("⚠️ Session expired. Please /post again.")
+        sessions.pop(uid, None)
+        return
 
     await context.bot.send_photo(
         chat_id=CHANNEL_ID,
         photo=s["photo"],
         caption=s["caption"],
-        reply_markup=s["final_buttons"]  # ✅ CORRECT
+        reply_markup=s["final_buttons"]
     )
 
     sessions.pop(uid)
