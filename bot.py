@@ -16,153 +16,192 @@ from telegram.ext import (
 # ================= CONFIG =================
 
 TOKEN = os.environ["BOT_TOKEN"]
-CHANNEL_ID = "@underage_editz"                 # your channel
-ADMIN_ID = 6803356420                          # your Telegram ID
-DELIVERY_BOT_USERNAME = "Coder_using_ai_bot"   # without @
+CHANNEL_ID = "@underage_editz"
+ADMIN_ID = 6803356420
+DELIVERY_BOT_USERNAME = "Coder_using_ai_bot"
 
-post_sessions = {}
+sessions = {}
 
 # ================= START =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "✅ Posting bot is running.\n\n"
-        "Use /post to create a new channel post."
+        "✅ Posting bot is running.\n\nUse /post to create a post."
     )
 
-# ================= POST FLOW =================
+# ================= POST =================
 
 async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    post_sessions[update.effective_user.id] = {}
-    await update.message.reply_text("📸 Send the image for the post.")
+    sessions[update.effective_user.id] = {}
+    await update.message.reply_text("📸 Send the image.")
 
-# STEP 1 — IMAGE
+# ================= IMAGE =================
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    if uid not in post_sessions:
+    if uid not in sessions:
         return
 
-    post_sessions[uid]["photo"] = update.message.photo[-1].file_id
+    sessions[uid]["photo"] = update.message.photo[-1].file_id
     await update.message.reply_text("✍️ Send the caption text.")
 
-# STEP 2 — CAPTION
-async def handle_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ================= TEXT HANDLER =================
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    session = post_sessions.get(uid)
-    if not session:
+    if uid not in sessions:
         return
 
-    if "caption" not in session:
-        session["caption"] = update.message.text
-        await update.message.reply_text("📦 Send FILE 1 project key.")
+    s = sessions[uid]
+
+    if "caption" not in s:
+        s["caption"] = update.message.text
+        await ask_layout(update)
         return
 
-    if "file1" not in session:
-        session["file1"] = update.message.text.strip()
-        await update.message.reply_text("📦 Send FILE 2 project key.")
+    if s.get("awaiting") == "file1":
+        s["file1"] = update.message.text
+        if s["layout"] == 2:
+            s["awaiting"] = "link1"
+            await update.message.reply_text("🔗 Send WATCH HERE link.")
+        else:
+            s["awaiting"] = "file2"
+            await update.message.reply_text("📦 Send FILE 2 project key.")
         return
 
-    if "file2" not in session:
-        session["file2"] = update.message.text.strip()
-        await update.message.reply_text("🔗 Send LINK 1 (Watch / Demo / etc).")
+    if s.get("awaiting") == "file2":
+        s["file2"] = update.message.text
+        if s["layout"] == 3:
+            s["awaiting"] = "link1"
+            await update.message.reply_text("🔗 Send WATCH HERE link.")
+        else:
+            s["awaiting"] = "link1"
+            await update.message.reply_text("🔗 Send LINK 1.")
         return
 
-    if "link1" not in session:
-        session["link1"] = update.message.text.strip()
-        await update.message.reply_text("🔗 Send LINK 2.")
+    if s.get("awaiting") == "link1":
+        s["link1"] = update.message.text
+        if s["layout"] == 2 or s["layout"] == 3:
+            await show_preview(update)
+        else:
+            s["awaiting"] = "link2"
+            await update.message.reply_text("🔗 Send LINK 2.")
         return
 
-    # STEP 3 — LINK 2
-    session["link2"] = update.message.text.strip()
+    if s.get("awaiting") == "link2":
+        s["link2"] = update.message.text
+        await show_preview(update)
 
-    # BUILD BUTTONS
-    buttons = [
-        [
-            InlineKeyboardButton(
-                "GET FILE 1",
-                url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={session['file1']}"
-            ),
-            InlineKeyboardButton(
-                "GET FILE 2",
-                url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={session['file2']}"
-            )
-        ],
-        [
-            InlineKeyboardButton("WATCH HERE", url=session["link1"]),
-            InlineKeyboardButton("MORE INFO", url=session["link2"])
-        ]
+# ================= ASK LAYOUT =================
+
+async def ask_layout(update: Update):
+    keyboard = [
+        [InlineKeyboardButton("2 Buttons", callback_data="layout_2")],
+        [InlineKeyboardButton("3 Buttons", callback_data="layout_3")],
+        [InlineKeyboardButton("4 Buttons", callback_data="layout_4")]
     ]
-
-    keyboard = InlineKeyboardMarkup(buttons)
-
-    # PREVIEW
-    await context.bot.send_photo(
-        chat_id=uid,
-        photo=session["photo"],
-        caption="🧪 *PREVIEW*\n\n" + session["caption"],
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-
-    confirm_keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ CONFIRM POST", callback_data="confirm"),
-            InlineKeyboardButton("❌ CANCEL", callback_data="cancel")
-        ]
-    ])
-
     await update.message.reply_text(
-        "Do you want to post this to the channel?",
-        reply_markup=confirm_keyboard
+        "🔘 Choose button layout:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ================= CONFIRM / CANCEL =================
+# ================= LAYOUT CALLBACK =================
 
-async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def layout_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
-    session = post_sessions.get(uid)
-
     await query.answer()
 
-    if not session:
-        return
+    layout = int(query.data.split("_")[1])
+    sessions[uid]["layout"] = layout
+    sessions[uid]["awaiting"] = "file1"
 
-    if query.data == "cancel":
-        post_sessions.pop(uid, None)
-        await query.message.reply_text("❌ Post cancelled.")
-        return
+    await query.message.reply_text("📦 Send FILE 1 project key.")
 
-    if query.data == "confirm":
+# ================= PREVIEW =================
+
+async def show_preview(update: Update):
+    uid = update.effective_user.id
+    s = sessions[uid]
+
+    buttons = []
+
+    if s["layout"] == 2:
+        buttons = [[
+            InlineKeyboardButton("GET CODE", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
+            InlineKeyboardButton("WATCH HERE", url=s["link1"])
+        ]]
+
+    elif s["layout"] == 3:
         buttons = [
             [
-                InlineKeyboardButton(
-                    "GET FILE 1",
-                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={session['file1']}"
-                ),
-                InlineKeyboardButton(
-                    "GET FILE 2",
-                    url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={session['file2']}"
-                )
+                InlineKeyboardButton("FILE 1", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
+                InlineKeyboardButton("FILE 2", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}")
             ],
             [
-                InlineKeyboardButton("WATCH HERE", url=session["link1"]),
-                InlineKeyboardButton("MORE INFO", url=session["link2"])
+                InlineKeyboardButton("WATCH HERE", url=s["link1"])
             ]
         ]
 
-        await context.bot.send_photo(
-            chat_id=CHANNEL_ID,
-            photo=session["photo"],
-            caption=session["caption"],
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
+    elif s["layout"] == 4:
+        buttons = [
+            [
+                InlineKeyboardButton("FILE 1", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"),
+                InlineKeyboardButton("FILE 2", url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}")
+            ],
+            [
+                InlineKeyboardButton("LINK 1", url=s["link1"]),
+                InlineKeyboardButton("LINK 2", url=s["link2"])
+            ]
+        ]
 
-        post_sessions.pop(uid, None)
-        await query.message.reply_text("✅ Posted to channel successfully.")
+    await update.message.reply_photo(
+        photo=s["photo"],
+        caption="🔍 **PREVIEW**\n\n" + s["caption"],
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode="Markdown"
+    )
+
+    confirm = [
+        [
+            InlineKeyboardButton("✅ POST", callback_data="confirm"),
+            InlineKeyboardButton("❌ CANCEL", callback_data="cancel")
+        ]
+    ]
+
+    await update.message.reply_text(
+        "Confirm post?",
+        reply_markup=InlineKeyboardMarkup(confirm)
+    )
+
+# ================= CONFIRM =================
+
+async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    uid = query.from_user.id
+    await query.answer()
+
+    s = sessions[uid]
+
+    await context.bot.send_photo(
+        chat_id=CHANNEL_ID,
+        photo=s["photo"],
+        caption=s["caption"],
+        reply_markup=query.message.reply_markup
+    )
+
+    sessions.pop(uid)
+    await query.message.reply_text("✅ Posted to channel.")
+
+# ================= CANCEL =================
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.callback_query.from_user.id
+    sessions.pop(uid, None)
+    await update.callback_query.message.reply_text("❌ Cancelled.")
 
 # ================= INIT =================
 
@@ -172,8 +211,10 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("post", post))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_caption))
-    app.add_handler(CallbackQueryHandler(confirm_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    app.add_handler(CallbackQueryHandler(layout_choice, pattern="^layout_"))
+    app.add_handler(CallbackQueryHandler(confirm, pattern="^confirm$"))
+    app.add_handler(CallbackQueryHandler(cancel, pattern="^cancel$"))
 
     app.run_polling()
 
