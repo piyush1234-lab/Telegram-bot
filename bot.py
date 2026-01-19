@@ -190,7 +190,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=CHANNEL_ID,
         photo=s["photo"],
         caption=s["caption"],
-        reply_markup=query.message.reply_markup
+        reply_markup=s["final_buttons"]  # ✅ CORRECT
     )
 
     sessions.pop(uid)
