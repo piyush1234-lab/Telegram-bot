@@ -66,19 +66,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         s["file1"] = update.message.text
         if s["layout"] == 2:
             s["awaiting"] = "link1"
-            await update.message.reply_text("🔗 Send WATCH HERE link.")
+            await update.message.reply_text(
+                "🔗 Send INSTAGRAM link (for INSTAGRAM button)."
+            )
         else:
             s["awaiting"] = "file2"
-            await update.message.reply_text("📦 Send FILE 2 project key.")
+            await update.message.reply_text(
+                "📦 Send CODE project key (for CODE button)."
+            )
         return
 
     if s.get("awaiting") == "file2":
         s["file2"] = update.message.text
         s["awaiting"] = "link1"
-        if s["layout"] == 3:
-            await update.message.reply_text("🔗 Send WATCH HERE link.")
-        else:
-            await update.message.reply_text("🔗 Send LINK 1.")
+        await update.message.reply_text(
+            "🔗 Send INSTAGRAM link (for INSTAGRAM button)."
+        )
         return
 
     if s.get("awaiting") == "link1":
@@ -87,7 +90,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await show_preview(update)
         else:
             s["awaiting"] = "link2"
-            await update.message.reply_text("🔗 Send LINK 2.")
+            await update.message.reply_text(
+                "🔗 Send WEBSITE link (for WEBSITE button)."
+            )
         return
 
     if s.get("awaiting") == "link2":
@@ -118,7 +123,9 @@ async def layout_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sessions[uid]["layout"] = layout
     sessions[uid]["awaiting"] = "file1"
 
-    await query.message.reply_text("📦 Send FILE 1 project key.")
+    await query.message.reply_text(
+        "📦 Send APK project key (for APK button)."
+    )
 
 # ================= PREVIEW =================
 
@@ -129,47 +136,49 @@ async def show_preview(update: Update):
     if s["layout"] == 2:
         buttons = [[
             InlineKeyboardButton(
-                "GET CODE",
+                "CODE",
                 url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
             ),
-            InlineKeyboardButton("WATCH HERE", url=s["link1"])
+            InlineKeyboardButton("INSTAGRAM", url=s["link1"])
         ]]
 
     elif s["layout"] == 3:
         buttons = [
             [
                 InlineKeyboardButton(
-                    "FILE 1",
+                    "APK",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
                 ),
                 InlineKeyboardButton(
-                    "FILE 2",
+                    "CODE",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
                 )
             ],
-            [InlineKeyboardButton("WATCH HERE", url=s["link1"])]
+            [
+                InlineKeyboardButton("INSTAGRAM", url=s["link1"])
+            ]
         ]
 
     else:  # layout 4
         buttons = [
             [
                 InlineKeyboardButton(
-                    "FILE 1",
+                    "APK",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
                 ),
                 InlineKeyboardButton(
-                    "FILE 2",
+                    "CODE",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
                 )
             ],
             [
-                InlineKeyboardButton("LINK 1", url=s["link1"]),
-                InlineKeyboardButton("LINK 2", url=s["link2"])
+                InlineKeyboardButton("INSTAGRAM", url=s["link1"]),
+                InlineKeyboardButton("WEBSITE", url=s["link2"])
             ]
         ]
 
     markup = InlineKeyboardMarkup(buttons)
-    s["final_buttons"] = markup  # 🔑 CRITICAL FIX
+    s["final_buttons"] = markup
 
     await update.message.reply_photo(
         photo=s["photo"],
