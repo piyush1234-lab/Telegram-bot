@@ -172,7 +172,7 @@ async def show_preview(update: Update):
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
                 ),
                 InlineKeyboardButton(
-                    "⚙GET CODE",
+                    "⚙ GET CODE",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
                 )
             ],
