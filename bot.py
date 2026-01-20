@@ -141,10 +141,10 @@ async def show_preview(update: Update):
     if s["layout"] == 2:
         buttons = [[
             InlineKeyboardButton(
-                "CODE",
+                "⚙ GET CODE",
                 url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
             ),
-            InlineKeyboardButton("INSTAGRAM", url=s["link1"])
+            InlineKeyboardButton("WATCH HERE", url=s["link1"])
         ]]
 
     elif s["layout"] == 3:
@@ -155,12 +155,12 @@ async def show_preview(update: Update):
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
                 ),
                 InlineKeyboardButton(
-                    "CODE",
+                    "⚙ GET CODE",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
                 )
             ],
             [
-                InlineKeyboardButton("INSTAGRAM", url=s["link1"])
+                InlineKeyboardButton("WATCH HERE", url=s["link1"])
             ]
         ]
 
@@ -172,12 +172,12 @@ async def show_preview(update: Update):
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file1']}"
                 ),
                 InlineKeyboardButton(
-                    "CODE",
+                    "⚙GET CODE",
                     url=f"https://t.me/{DELIVERY_BOT_USERNAME}?start={s['file2']}"
                 )
             ],
             [
-                InlineKeyboardButton("INSTAGRAM", url=s["link1"]),
+                InlineKeyboardButton("WATCH HERE", url=s["link1"]),
                 InlineKeyboardButton("WEBSITE", url=s["link2"])
             ]
         ]
