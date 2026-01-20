@@ -112,7 +112,7 @@ async def ask_layout(update: Update):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ================= LAYOUT CALLBACK =================
+# ================= LAYOUT CALLBACK (FIXED) =================
 
 async def layout_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -123,9 +123,14 @@ async def layout_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sessions[uid]["layout"] = layout
     sessions[uid]["awaiting"] = "file1"
 
-    await query.message.reply_text(
-        "📦 Send APK project key (for APK button)."
-    )
+    if layout == 2:
+        await query.message.reply_text(
+            "📦 Send CODE project key (for CODE button)."
+        )
+    else:
+        await query.message.reply_text(
+            "📦 Send APK project key (for APK button)."
+        )
 
 # ================= PREVIEW =================
 
